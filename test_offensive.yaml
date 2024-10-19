@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lifespan
+  namespace: nfs
+spec:
+  containers:
+  - name: lifespan
+    image: busybox
+
