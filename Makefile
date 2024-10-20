@@ -36,10 +36,10 @@ delete:
 .PHONY: deploy-ca
 deploy-ca: 
 	@echo "\n⚙️  Creating certification authority..."
-	kubectl apply -f dev/manifests/cert-manager/self-signer
+	kubectl apply -f dev/manifests/cert-manager/self-signer.yaml
 
 .PHONY: delete-ca
-delete-accounts:
+delete-ca:
 	@echo "\n⚙️  Deleting certification authority.."
 	kubectl delete -f dev/manifests/cert-manager/self-signer.yaml
 
@@ -49,7 +49,7 @@ deploy-certificate:
 	kubectl apply -f dev/manifests/cert-manager/envd-server-pod-webhook-certificate.yaml
 
 .PHONY: delete-certificate
-delete-accounts:
+delete-certificate:
 	@echo "\n⚙️  Deleting webhook pod certificate.."
 	kubectl delete -f dev/manifests/cert-manager/envd-server-pod-webhook-certificate.yaml	
 
@@ -66,12 +66,11 @@ delete-accounts:
 .PHONY: extract-tokens
 extract-tokens:
 	@echo "\n⚙️  Extracting tokens for Service Accounts.."
-	source dev/manifests/accounts/extract-token.sh
+	sh dev/manifests/accounts/extract-token.sh
 
 .PHONY: delete-all
-delete-all:
+delete-all: delete delete-config delete-certificate delete-ca delete-accounts
 	@echo "\n⚙️  Deleting all..."
-	delete delete-config delete-certificate delete-ca delete-accounts
 
 .PHONY: logs
 logs:
