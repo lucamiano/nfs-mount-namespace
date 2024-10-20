@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: uid-mapping
-  namespace: nfs
+  namespace: default
 data:
   dev: "1001"
   test: "1002"

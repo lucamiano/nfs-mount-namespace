@@ -2,6 +2,7 @@ package validation
 
 import (
 	"github.com/sirupsen/logrus"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -27,7 +28,7 @@ type validation struct {
 }
 
 // ValidatePod returns true if a pod is valid
-func (v *Validator) ValidatePod(pod *corev1.Pod) (validation, error) {
+func (v *Validator) ValidatePod(pod *corev1.Pod, a *admissionv1.AdmissionRequest) (validation, error) {
 	var podName string
 	if pod.Name != "" {
 		podName = pod.Name

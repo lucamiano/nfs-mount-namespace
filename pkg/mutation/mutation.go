@@ -5,6 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/wI2L/jsondiff"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -20,13 +21,13 @@ func NewMutator(logger *logrus.Entry) *Mutator {
 
 // podMutators is an interface used to group functions mutating pods
 type podMutator interface {
-	Mutate(*corev1.Pod) (*corev1.Pod, error)
+	Mutate(*corev1.Pod, *admissionv1.AdmissionRequest) (*corev1.Pod, error)
 	Name() string
 }
 
 // MutatePodPatch returns a json patch containing all the mutations needed for
 // a given pod
-func (m *Mutator) MutatePodPatch(pod *corev1.Pod) ([]byte, error) {
+func (m *Mutator) MutatePodPatch(pod *corev1.Pod, a *admissionv1.AdmissionRequest) ([]byte, error) {
 	var podName string
 	if pod.Name != "" {
 		podName = pod.Name
@@ -40,7 +41,6 @@ func (m *Mutator) MutatePodPatch(pod *corev1.Pod) ([]byte, error) {
 	// list of all mutations to be applied to the pod
 	mutations := []podMutator{
 		mountHomeDirectory{Logger: log},
-		injectEnv{Logger: log},
 	}
 
 	mpod := pod.DeepCopy()
@@ -48,7 +48,7 @@ func (m *Mutator) MutatePodPatch(pod *corev1.Pod) ([]byte, error) {
 	// apply all mutations
 	for _, m := range mutations {
 		var err error
-		mpod, err = m.Mutate(mpod)
+		mpod, err = m.Mutate(mpod, a)
 		if err != nil {
 			return nil, err
 		}

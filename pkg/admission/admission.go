@@ -31,9 +31,8 @@ func (a Admitter) MutatePodReview() (*admissionv1.AdmissionReview, error) {
 		e := fmt.Sprintf("could not parse pod in admission review request: %v", err)
 		return reviewResponse(a.Request.UID, false, http.StatusBadRequest, e), err
 	}
-
 	m := mutation.NewMutator(a.Logger)
-	patch, err := m.MutatePodPatch(pod)
+	patch, err := m.MutatePodPatch(pod, a.Request)
 	if err != nil {
 		e := fmt.Sprintf("could not mutate pod: %v", err)
 		return reviewResponse(a.Request.UID, false, http.StatusBadRequest, e), err
@@ -52,7 +51,7 @@ func (a Admitter) ValidatePodReview() (*admissionv1.AdmissionReview, error) {
 	}
 
 	v := validation.NewValidator(a.Logger)
-	val, err := v.ValidatePod(pod)
+	val, err := v.ValidatePod(pod, a.Request)
 	if err != nil {
 		e := fmt.Sprintf("could not validate pod: %v", err)
 		return reviewResponse(a.Request.UID, false, http.StatusBadRequest, e), err
