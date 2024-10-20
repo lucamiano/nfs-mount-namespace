@@ -57,7 +57,7 @@ func (mhd mountHomeDirectory) Mutate(pod *corev1.Pod, a *admissionv1.AdmissionRe
 func setUID(mhd mountHomeDirectory, existing *corev1.PodSecurityContext, serviceAccount string) (*corev1.PodSecurityContext, error) {
 	client, err := initClient()
 	if err != nil {
-		logMessage := fmt.Sprintf("Failed setting UID: %s\n", err)
+		logMessage := fmt.Sprintf("Failed initializing Kubernetes client: %s\n", err)
 		return nil, fmt.Errorf(logMessage)
 	}
 	configMap, err := getConfigMap(client)
@@ -96,7 +96,7 @@ func initClient() (*kubernetes.Clientset, error) {
 	// Creating client
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		logMessage := fmt.Sprintf("Error creating Kubernetes client: %s\n", err)
+		logMessage := fmt.Sprintf("Error starting Kubernetes client from config: %s\n", err)
 		return nil, fmt.Errorf(logMessage)
 	}
 	return clientset, nil

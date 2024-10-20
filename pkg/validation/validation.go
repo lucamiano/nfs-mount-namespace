@@ -18,7 +18,7 @@ func NewValidator(logger *logrus.Entry) *Validator {
 
 // podValidators is an interface used to group functions mutating pods
 type podValidator interface {
-	Validate(*corev1.Pod) (validation, error)
+	Validate(*corev1.Pod, *admissionv1.AdmissionRequest) (validation, error)
 	Name() string
 }
 
@@ -42,13 +42,13 @@ func (v *Validator) ValidatePod(pod *corev1.Pod, a *admissionv1.AdmissionRequest
 
 	// list of all validations to be applied to the pod
 	validations := []podValidator{
-		nameValidator{v.Logger},
+		uidValidator{v.Logger},
 	}
 
 	// apply all validations
 	for _, v := range validations {
 		var err error
-		vp, err := v.Validate(pod)
+		vp, err := v.Validate(pod, a)
 		if err != nil {
 			return validation{Valid: false, Reason: err.Error()}, err
 		}

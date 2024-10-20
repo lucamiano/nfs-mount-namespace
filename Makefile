@@ -5,25 +5,8 @@ test:
 
 .PHONY: build
 build:
-	@echo "\n🔧  Building Go binaries..."
-	GOOS=darwin GOARCH=amd64 go build -o bin/admission-webhook-darwin-amd64 .
-	GOOS=linux GOARCH=amd64 go build -o bin/admission-webhook-linux-amd64 .
-
-.PHONY: docker-build
-docker-build:
 	@echo "\n📦 Building envd-server-pod-webhook Docker image..."
 	docker buildx build -t cka-control-1:5000/envd-server-pod-webhook:latest .
-
-# From this point `kind` is required
-.PHONY: cluster
-cluster:
-	@echo "\n🔧 Creating Kubernetes cluster..."
-	kind create cluster --config dev/manifests/kind/kind.cluster.yaml
-
-.PHONY: delete-cluster
-delete-cluster:
-	@echo "\n♻️  Deleting Kubernetes cluster..."
-	kind delete cluster
 
 .PHONY: push
 push:
@@ -41,45 +24,59 @@ delete-config:
 	kubectl delete -f dev/manifests/cluster-config/
 
 .PHONY: deploy
-deploy: push delete deploy-config
+deploy: push delete delete-config deploy-config
 	@echo "\n🚀 Deploying envd-server-pod-webhook..."
 	kubectl apply -f dev/manifests/webhook/
 
 .PHONY: delete
 delete:
 	@echo "\n♻️  Deleting envd-server-pod-webhook deployment if existing..."
-	kubectl delete -f dev/manifests/cluster-config/ || true
 	kubectl delete -f dev/manifests/webhook/ || true
 
-.PHONY: pod
-pod:
-	@echo "\n🚀 Deploying test pod..."
-	kubectl apply -f dev/manifests/pods/lifespan-seven.pod.yaml
+.PHONY: deploy-ca
+deploy-ca: 
+	@echo "\n⚙️  Creating certification authority..."
+	kubectl apply -f dev/manifests/cert-manager/self-signer
 
-.PHONY: delete-pod
-delete-pod:
-	@echo "\n♻️ Deleting test pod..."
-	kubectl delete -f dev/manifests/pods/lifespan-seven.pod.yaml
+.PHONY: delete-ca
+delete-accounts:
+	@echo "\n⚙️  Deleting certification authority.."
+	kubectl delete -f dev/manifests/cert-manager/self-signer.yaml
 
-.PHONY: bad-pod
-bad-pod:
-	@echo "\n🚀 Deploying \"bad\" pod..."
-	kubectl apply -f dev/manifests/pods/bad-name.pod.yaml
+.PHONY: deploy-certificate
+deploy-certificate:
+	@echo "\n⚙️  Creating webhook pod certificate.."
+	kubectl apply -f dev/manifests/cert-manager/envd-server-pod-webhook-certificate.yaml
 
-.PHONY: delete-bad-pod
-delete-bad-pod:
-	@echo "\n🚀 Deleting \"bad\" pod..."
-	kubectl delete -f dev/manifests/pods/bad-name.pod.yaml
+.PHONY: delete-certificate
+delete-accounts:
+	@echo "\n⚙️  Deleting webhook pod certificate.."
+	kubectl delete -f dev/manifests/cert-manager/envd-server-pod-webhook-certificate.yaml	
 
-.PHONY: taint
-taint:
-	@echo "\n🎨 Taining Kubernetes node.."
-	kubectl taint nodes kind-control-plane "acme.com/lifespan-remaining"=4:NoSchedule
+.PHONY: deploy-accounts
+deploy-accounts:
+	@echo "\n⚙️  Creating Service Accounts and assign roles.."
+	sh dev/manifests/accounts/create.sh
+
+.PHONY: delete-accounts
+delete-accounts:
+	@echo "\n⚙️  Deleting Service Accounts and assigned roles.."
+	sh dev/manifests/accounts/delete.sh	
+
+.PHONY: extract-tokens
+extract-tokens:
+	@echo "\n⚙️  Extracting tokens for Service Accounts.."
+	source dev/manifests/accounts/extract-token.sh
+
+.PHONY: delete-all
+delete-all:
+	@echo "\n⚙️  Deleting all..."
+	delete delete-config delete-certificate delete-ca delete-accounts
 
 .PHONY: logs
 logs:
 	@echo "\n🔍 Streaming envd-server-pod-webhook logs..."
 	kubectl logs -l app=envd-server-pod-webhook -f
 
-.PHONY: delete-all
-delete-all: delete delete-config delete-pod delete-bad-pod
+
+

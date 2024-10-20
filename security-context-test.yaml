@@ -5,7 +5,6 @@ metadata:
   name: security-context-demo
   namespace: nfs
 spec:
-  serviceAccountName: dev
   containers:
   - name: sec-ctx-demo
     image: busybox:1.28
