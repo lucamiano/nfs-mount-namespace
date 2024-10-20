@@ -1,0 +1,11 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: envd-server-pod-webhook-certificate
+  namespace: default
+spec:
+  secretName: envd-server-pod-webhook-tls
+  dnsNames:
+    - envd-server-pod-webhook.default.svc
+  issuerRef:
+    name: self-signer
