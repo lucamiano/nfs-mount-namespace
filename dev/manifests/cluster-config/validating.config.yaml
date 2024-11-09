@@ -3,7 +3,7 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: "envd-server.tensorchord.ai"
   annotations:
-    cert-manager.io/inject-ca-from: default/envd-server-pod-webhook-certificate
+    cert-manager.io/inject-ca-from: default/nfs-pod-access-control-certificate
 webhooks:
   - name: "envd-server.tensorchord.ai"
     namespaceSelector:
@@ -18,7 +18,7 @@ webhooks:
     clientConfig:
       service:
         namespace: default
-        name: envd-server-pod-webhook
+        name: nfs-pod-access-control
         path: /validate-pods
         port: 443
     admissionReviewVersions: ["v1"]

@@ -5,13 +5,13 @@ test:
 
 .PHONY: build
 build:
-	@echo "\n📦 Building envd-server-pod-webhook Docker image..."
-	docker buildx build -t cka-control-1:5000/envd-server-pod-webhook:latest .
+	@echo "\n📦 Building nfs-pod-access-control Docker image..."
+	docker buildx build -t cka-control-1:5000/nfs-pod-access-control:latest .
 
 .PHONY: push
 push:
 	@echo "\n📦 Pushing admission-webhook image into local registry..."
-	docker push cka-control-1:5000/envd-server-pod-webhook:latest
+	docker push cka-control-1:5000/nfs-pod-access-control:latest
 
 .PHONY: deploy-config
 deploy-config:
@@ -25,12 +25,12 @@ delete-config:
 
 .PHONY: deploy
 deploy: push delete delete-config deploy-config
-	@echo "\n🚀 Deploying envd-server-pod-webhook..."
+	@echo "\n🚀 Deploying nfs-pod-access-control..."
 	kubectl apply -f dev/manifests/webhook/
 
 .PHONY: delete
 delete:
-	@echo "\n♻️  Deleting envd-server-pod-webhook deployment if existing..."
+	@echo "\n♻️  Deleting nfs-pod-access-control deployment if existing..."
 	kubectl delete -f dev/manifests/webhook/ || true
 
 .PHONY: deploy-ca
@@ -46,12 +46,12 @@ delete-ca:
 .PHONY: deploy-certificate
 deploy-certificate:
 	@echo "\n⚙️  Creating webhook pod certificate.."
-	kubectl apply -f dev/manifests/cert-manager/envd-server-pod-webhook-certificate.yaml
+	kubectl apply -f dev/manifests/cert-manager/nfs-pod-access-control-certificate.yaml
 
 .PHONY: delete-certificate
 delete-certificate:
 	@echo "\n⚙️  Deleting webhook pod certificate.."
-	kubectl delete -f dev/manifests/cert-manager/envd-server-pod-webhook-certificate.yaml	
+	kubectl delete -f dev/manifests/cert-manager/nfs-pod-access-control-certificate.yaml	
 
 .PHONY: deploy-accounts
 deploy-accounts:
@@ -74,8 +74,8 @@ delete-all: delete delete-config delete-certificate delete-ca delete-accounts
 
 .PHONY: logs
 logs:
-	@echo "\n🔍 Streaming envd-server-pod-webhook logs..."
-	kubectl logs -l app=envd-server-pod-webhook -f
+	@echo "\n🔍 Streaming nfs-pod-access-control logs..."
+	kubectl logs -l app=nfs-pod-access-control -f
 
 
 

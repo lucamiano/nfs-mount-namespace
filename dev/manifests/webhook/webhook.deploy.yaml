@@ -2,26 +2,26 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: envd-server-pod-webhook
-  name: envd-server-pod-webhook
+    app: nfs-pod-access-control
+  name: nfs-pod-access-control
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: envd-server-pod-webhook
+      app: nfs-pod-access-control
   template:
     metadata:
       labels:
-        app: envd-server-pod-webhook
+        app: nfs-pod-access-control
     spec:
       tolerations:
         - key: acme.com/lifespan-remaining
           operator: Exists
           effect: NoSchedule
       containers:
-        - image: cka-control-1:5000/envd-server-pod-webhook:latest
-          name: envd-server-pod-webhook
+        - image: cka-control-1:5000/nfs-pod-access-control:latest
+          name: nfs-pod-access-control
           env:
             - name: TLS
               value: "true"
@@ -36,4 +36,4 @@ spec:
       volumes:
         - name: tls
           secret:
-            secretName: envd-server-pod-webhook-tls
+            secretName: nfs-pod-access-control-tls

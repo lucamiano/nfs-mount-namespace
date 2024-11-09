@@ -1,4 +1,4 @@
-module github.com/tensorchord/envd-server-pod-webhook
+module github.com/tensorchord/nfs-pod-access-control
 
 go 1.23
 

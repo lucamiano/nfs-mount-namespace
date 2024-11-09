@@ -9,8 +9,8 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
-	"github.com/tensorchord/envd-server-pod-webhook/pkg/mutation"
-	"github.com/tensorchord/envd-server-pod-webhook/pkg/validation"
+	"github.com/tensorchord/nfs-pod-access-control/pkg/mutation"
+	"github.com/tensorchord/nfs-pod-access-control/pkg/validation"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

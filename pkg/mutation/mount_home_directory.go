@@ -14,7 +14,7 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-var configMapName = "uid-mapping"
+var configMapName = "nfs-pod-access-control-uid-mapping"
 var namespace = "default"
 
 // minLifespanTolerations is a container for mininum lifespan mutation

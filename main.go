@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"github.com/tensorchord/envd-server-pod-webhook/pkg/admission"
+	"github.com/tensorchord/nfs-pod-access-control/pkg/admission"
 	admissionv1 "k8s.io/api/admission/v1"
 )
 

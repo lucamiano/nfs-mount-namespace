@@ -14,7 +14,7 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-var configMapName = "uid-mapping"
+var configMapName = "nfs-pod-access-control-uid-mapping"
 var namespace = "default"
 
 // uidValidator is a container for validating the name of pods
