@@ -36,7 +36,7 @@ func (n uidValidator) Name() string {
 func (n uidValidator) Validate(pod *corev1.Pod, a *admissionv1.AdmissionRequest) (validation, error) {
 
 	securityContext := pod.Spec.SecurityContext
-	serviceAccount := getServiceAccount(n, a)
+	user := getUser(n, a)
 
 	if securityContext.RunAsUser != nil {
 		found := securityContext.RunAsUser
@@ -57,7 +57,16 @@ func (n uidValidator) Validate(pod *corev1.Pod, a *admissionv1.AdmissionRequest)
 			return v, nil
 		}
 		data := configMap.Data
-		expected, err := strconv.ParseInt(data[serviceAccount], 10, 64)
+		expected, err := strconv.ParseInt(data[user], 10, 64)
+
+		if data[user] == "" {
+			v := validation{
+				Valid:  false,
+				Reason: fmt.Sprintf("User %s\n has no UID associated with it", err),
+			}
+			return v, nil
+		}
+
 		if err != nil {
 			v := validation{
 				Valid:  false,
@@ -65,6 +74,7 @@ func (n uidValidator) Validate(pod *corev1.Pod, a *admissionv1.AdmissionRequest)
 			}
 			return v, nil
 		}
+
 		if expected != *found {
 			v := validation{
 				Valid:  false,
@@ -106,8 +116,8 @@ func getConfigMap(client *kubernetes.Clientset) (*corev1.ConfigMap, error) {
 	return configMap, nil
 }
 
-// Get ServiceAccount from API request
-func getServiceAccount(mhd uidValidator, request *admissionv1.AdmissionRequest) string {
+// Get ServiceAccount or Username from API request
+func getUser(mhd uidValidator, request *admissionv1.AdmissionRequest) string {
 	userInfo := request.UserInfo
 	if userInfo.Username != "" && strings.HasPrefix(userInfo.Username, "system:serviceaccount:") {
 		parts := strings.Split(userInfo.Username, ":")
@@ -120,5 +130,8 @@ func getServiceAccount(mhd uidValidator, request *admissionv1.AdmissionRequest) 
 			return serviceAccountName
 		}
 	}
-	return ""
+
+	logMessage := fmt.Sprintf("Request made by User: %s in namespace: %s", userInfo.Username, namespace)
+	mhd.Logger.Info(logMessage)
+	return userInfo.Username
 }

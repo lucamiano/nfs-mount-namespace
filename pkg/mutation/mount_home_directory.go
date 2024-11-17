@@ -36,25 +36,23 @@ func (mhd mountHomeDirectory) Mutate(pod *corev1.Pod, a *admissionv1.AdmissionRe
 	mhd.Logger = mhd.Logger.WithField("mutation", mhd.Name())
 	mpod := pod.DeepCopy()
 	securityContext := pod.Spec.SecurityContext
-	serviceAccount := getServiceAccount(mhd, a)
+	user := getUser(mhd, a)
 
 	if securityContext == nil || securityContext.RunAsUser == nil {
-		if serviceAccount != "" {
-			logMessage := fmt.Sprintf("No runAsUser rule found, applying default for current ServiceAccount %s", serviceAccount)
-			mhd.Logger.Info(logMessage)
+		logMessage := fmt.Sprintf("No runAsUser rule found, applying default for current User %s", user)
+		mhd.Logger.Info(logMessage)
 
-			var err error
-			mpod.Spec.SecurityContext, err = setUID(mhd, mpod.Spec.SecurityContext, serviceAccount)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to set RunAsUser: %s\n", err)
-			}
+		var err error
+		mpod.Spec.SecurityContext, err = setUID(mhd, mpod.Spec.SecurityContext, user)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to set RunAsUser: %s\n", err)
 		}
 	}
 	return mpod, nil
 }
 
-// Set RunAsUser field based on ServiceAccountName
-func setUID(mhd mountHomeDirectory, existing *corev1.PodSecurityContext, serviceAccount string) (*corev1.PodSecurityContext, error) {
+// Set RunAsUser field based on ServiceAccountName or Username
+func setUID(mhd mountHomeDirectory, existing *corev1.PodSecurityContext, user string) (*corev1.PodSecurityContext, error) {
 	client, err := initClient()
 	if err != nil {
 		logMessage := fmt.Sprintf("Failed initializing Kubernetes client: %s\n", err)
@@ -66,15 +64,15 @@ func setUID(mhd mountHomeDirectory, existing *corev1.PodSecurityContext, service
 		return nil, fmt.Errorf(logMessage)
 	}
 	data := configMap.Data
-	uid := data[serviceAccount]
+	uid := data[user]
 
 	if uid == "" {
-		logMessage := fmt.Sprintf("ServiceAccount %s\n has no UID associated with it", err)
+		logMessage := fmt.Sprintf("User %s\n has no UID associated with it", err)
 		return nil, fmt.Errorf(logMessage)
 	}
-	logMessage := fmt.Sprintf("ServiceAccount %s has UID %s associated with it", serviceAccount, uid)
+	logMessage := fmt.Sprintf("User %s has UID %s associated with it", user, uid)
 	mhd.Logger.Info(logMessage)
-	uid64, err := strconv.ParseInt(data[serviceAccount], 10, 64)
+	uid64, err := strconv.ParseInt(data[user], 10, 64)
 
 	if err != nil {
 		logMessage := fmt.Sprintf("Failed to convert UID to int64: %s", err)
@@ -113,8 +111,8 @@ func getConfigMap(client *kubernetes.Clientset) (*corev1.ConfigMap, error) {
 	return configMap, nil
 }
 
-// Get ServiceAccount from API request
-func getServiceAccount(mhd mountHomeDirectory, request *admissionv1.AdmissionRequest) string {
+// Get ServiceAccount or Username from API request
+func getUser(mhd mountHomeDirectory, request *admissionv1.AdmissionRequest) string {
 	userInfo := request.UserInfo
 	if userInfo.Username != "" && strings.HasPrefix(userInfo.Username, "system:serviceaccount:") {
 		parts := strings.Split(userInfo.Username, ":")
@@ -127,5 +125,8 @@ func getServiceAccount(mhd mountHomeDirectory, request *admissionv1.AdmissionReq
 			return serviceAccountName
 		}
 	}
-	return ""
+
+	logMessage := fmt.Sprintf("Request made by User: %s in namespace: %s", userInfo.Username, namespace)
+	mhd.Logger.Info(logMessage)
+	return userInfo.Username
 }
