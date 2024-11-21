@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"encoding/json"
+
 	"github.com/sirupsen/logrus"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -62,7 +64,7 @@ func (n uidValidator) Validate(pod *corev1.Pod, a *admissionv1.AdmissionRequest)
 		if data[user] == "" {
 			v := validation{
 				Valid:  false,
-				Reason: fmt.Sprintf("User %s\n has no UID associated with it", err),
+				Reason: fmt.Sprintf("User %s has no UID associated with it %s\n", user, err),
 			}
 			return v, nil
 		}
@@ -118,6 +120,15 @@ func getConfigMap(client *kubernetes.Clientset) (*corev1.ConfigMap, error) {
 
 // Get ServiceAccount or Username from API request
 func getUser(mhd uidValidator, request *admissionv1.AdmissionRequest) string {
+	requestJSON, err := json.MarshalIndent(request, "", "  ")
+	if err != nil {
+		fmt.Printf("Error serializing AdmissionRequest: %v\n", err)
+		return ""
+	}
+
+	// Print the JSON string
+	fmt.Println(string(requestJSON))
+
 	userInfo := request.UserInfo
 	if userInfo.Username != "" && strings.HasPrefix(userInfo.Username, "system:serviceaccount:") {
 		parts := strings.Split(userInfo.Username, ":")
