@@ -15,6 +15,7 @@ spec:
       labels:
         app: nfs-pod-access-control
     spec:
+      serviceAccountName: nfs-pod-access-control
       tolerations:
         - key: acme.com/lifespan-remaining
           operator: Exists

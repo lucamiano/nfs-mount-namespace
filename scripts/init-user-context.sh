@@ -1,0 +1,39 @@
+PROFILE=$1
+MINIKUBE_IP=$(minikube ip --profile=${PROFILE})
+
+REALM="kubernetes"
+OIDC_SERVER="https://keycloak.${MINIKUBE_IP}.nip.io"
+OIDC_ISSUER_URL="${OIDC_SERVER}/realms/${REALM}"
+OIDC_CLIENT_ID="k8s"
+OIDC_TOKEN_ENDPOINT=$(curl -k "${OIDC_ISSUER_URL}/.well-known/openid-configuration" | jq -r '.token_endpoint')
+OIDC_USERINFO_ENDPOINT=$(curl -k "${OIDC_ISSUER_URL}/.well-known/openid-configuration" | jq -r '.userinfo_endpoint')
+
+
+K8S_USER=$2
+K8S_USER_PASS=$3
+
+export RESPONSE=$(curl -v -k -X POST \
+-H "Content-Type: application/x-www-form-urlencoded" \
+"${OIDC_TOKEN_ENDPOINT}" \
+-d grant_type=password \
+-d client_id=${OIDC_CLIENT_ID} \
+-d username=${K8S_USER} \
+-d password=${K8S_USER_PASS} \
+-d scope="openid profile email groups" | jq '.')
+
+export ID_TOKEN=$(echo $RESPONSE| jq -r '.id_token')
+export REFRESH_TOKEN=$(echo $RESPONSE| jq -r '.refresh_token')
+export ACCESS_TOKEN=$(echo $RESPONSE| jq -r '.access_token')
+
+kubectl config set-credentials ${K8S_USER} \
+   --auth-provider=oidc \
+   --auth-provider-arg=idp-issuer-url=${OIDC_ISSUER_URL} \
+   --auth-provider-arg=client-id=${OIDC_CLIENT_ID} \
+   --auth-provider-arg=refresh-token=${REFRESH_TOKEN} \
+   --auth-provider-arg=id-token=${ID_TOKEN} \
+   --auth-provider-arg=idp-certificate-authority=scripts/keycloak-ca.crt
+
+kubectl config set-context ${K8S_USER} \
+--cluster=oidc-cluster \
+--user=${K8S_USER} \
+--namespace=nfs

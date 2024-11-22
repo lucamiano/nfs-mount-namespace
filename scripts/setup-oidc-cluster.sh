@@ -1,0 +1,40 @@
+PROFILE=$1
+
+minikube delete --profile=${PROFILE}
+minikube start --driver=docker --addons=ingress --vm=true --memory=4096 --cpus=4 --profile=${PROFILE}
+
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+
+helm install cert-manager jetstack/cert-manager \
+  --wait \
+  --create-namespace \
+  --namespace cert-manager \
+  --set installCRDs=true
+
+export MINIKUBE_IP=$(minikube ip --profile=${PROFILE})
+
+kubectl create namespace keycloak
+kubectl apply -f dev/manifests/cert-manager/self-signer.yaml
+kubectl apply -f dev/manifests/cert-manager/ca-certificate.yaml
+kubectl apply -f dev/manifests/cert-manager/trusted-issuer.yaml
+
+envsubst < dev/manifests/cert-manager/keycloak-tls.yaml | kubectl apply -f -
+envsubst < dev/manifests/keycloak/keycloak-deployment.yaml | kubectl apply -f -
+
+kubectl get secret ca.crt -o "jsonpath={.data['ca\.crt']}" -n keycloak | base64 -d > scripts/keycloak-ca.crt
+
+minikube ssh --profile=${PROFILE} sudo "mkdir -p /etc/ca-certificates" && \
+minikube cp --profile=${PROFILE} scripts/keycloak-ca.crt /etc/ca-certificates/keycloak-ca.crt
+
+minikube start --profile=${PROFILE}\
+    --extra-config=apiserver.oidc-issuer-url=https://keycloak.${MINIKUBE_IP}.nip.io/realms/kubernetes \
+    --extra-config=apiserver.oidc-client-id=k8s \
+    --extra-config=apiserver.oidc-username-claim=preferred_username \
+    --extra-config=apiserver.oidc-username-prefix=- \
+    --extra-config=apiserver.oidc-groups-claim=groups \
+    --extra-config=apiserver.oidc-groups-prefix= \
+    --extra-config=apiserver.oidc-ca-file=/etc/ca-certificates/keycloak-ca.crt
+
+kubectl apply -f dev/manifests/nfs-ns.yaml
+kubectl apply -f dev/manifests/rbac/nfs-rbac.yaml

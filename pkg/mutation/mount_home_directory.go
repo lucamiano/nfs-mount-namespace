@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"os"
+
 	"github.com/sirupsen/logrus"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -15,7 +17,7 @@ import (
 )
 
 var configMapName = "nfs-pod-access-control-uid-mapping"
-var namespace = "default"
+var namespace string
 
 // minLifespanTolerations is a container for mininum lifespan mutation
 type mountHomeDirectory struct {
@@ -30,8 +32,29 @@ func (mhd mountHomeDirectory) Name() string {
 	return "mount_home_directory"
 }
 
+// setPodNamespace retrieves the namespace of the pod by reading the file containing the namespace information
+func setPodNamespace() error {
+	// Path to the file containing the pod's namespace
+	namespaceFile := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
+	// Read the namespace file
+	namespaceBytes, err := os.ReadFile(namespaceFile)
+	if err != nil {
+		return err
+	}
+
+	// Set namespace variable
+	namespace = string(namespaceBytes)
+	return nil
+}
+
 // Mutate returns a new mutated pod according to lifespan tolerations rules
 func (mhd mountHomeDirectory) Mutate(pod *corev1.Pod, a *admissionv1.AdmissionRequest) (*corev1.Pod, error) {
+
+	err := setPodNamespace()
+	if err != nil {
+		return nil, fmt.Errorf("Failed retrieving some env variables client: %s\n", err)
+	}
 
 	mhd.Logger = mhd.Logger.WithField("mutation", mhd.Name())
 	mpod := pod.DeepCopy()

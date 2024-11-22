@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: keycloak-selfsigned
+  namespace: keycloak
+  labels:
+    app: keycloak
+spec:
+  isCA: true
+  commonName: keycloak-selfsigned-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: self-signer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  secretName: ca.crt

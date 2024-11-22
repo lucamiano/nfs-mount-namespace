@@ -1,0 +1,27 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: keycloak
+  namespace: keycloak
+  labels:
+    app: keycloak
+spec:
+  isCA: false
+  commonName: keycloak
+  dnsNames:
+    - keycloak.${MINIKUBE_IP}.nip.io
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 4096
+  issuerRef:
+    kind: Issuer
+    name: keycloak
+    group: cert-manager.io
+  secretName: keycloak.tls
+  usages:
+    - server auth
+    - digital signature
+    - key encipherment
+    - key agreement
+    - data encipherment
