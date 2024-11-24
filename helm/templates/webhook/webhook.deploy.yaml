@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Release.Name }}-webhook
+  name: {{ .Release.Name }}-webhook
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-webhook
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-webhook
+    spec:
+      serviceAccountName: {{ .Values.rbac.serviceAccountName }}
+      tolerations:
+        - key: {{ .Values.deployment.tolerations.key }}
+          operator: {{ .Values.deployment.tolerations.operator }}
+          effect: {{ .Values.deployment.tolerations.effect }}
+      containers:
+        - image: {{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag }}
+          name: {{ .Release.Name }}-webhook
+          env:
+            - name: TLS
+              value: "{{ .Values.deployment.env.TLS }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.deployment.env.LOG_LEVEL }}"
+            - name: LOG_JSON
+              value: "{{ .Values.deployment.env.LOG_JSON }}"
+          volumeMounts:
+            - name: tls
+              mountPath: "/etc/admission-webhook/tls"
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: {{ .Values.deployment.tlsSecretName }}

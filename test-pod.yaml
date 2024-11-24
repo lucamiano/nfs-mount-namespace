@@ -3,7 +3,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: security-context-demo
-  namespace: nfs
+  namespace: user2
 spec:
   securityContext:
     runAsUser: 1002

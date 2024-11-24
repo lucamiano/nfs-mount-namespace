@@ -6,6 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"encoding/json"
+
+	"os"
+
 	"github.com/sirupsen/logrus"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -15,7 +19,7 @@ import (
 )
 
 var configMapName = "nfs-pod-access-control-uid-mapping"
-var namespace = "default"
+var namespace string
 
 // uidValidator is a container for validating the name of pods
 type uidValidator struct {
@@ -30,13 +34,38 @@ func (n uidValidator) Name() string {
 	return "uid_validator"
 }
 
+// setPodNamespace retrieves the namespace of the pod by reading the file containing the namespace information
+func setPodNamespace() error {
+	// Path to the file containing the pod's namespace
+	namespaceFile := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
+	// Read the namespace file
+	namespaceBytes, err := os.ReadFile(namespaceFile)
+	if err != nil {
+		return err
+	}
+
+	// Set namespace variable
+	namespace = string(namespaceBytes)
+	return nil
+}
+
 // Validate inspects the Pod Spec.
 // The returned validation is only valid if the Pod doesn't set runAsUser with an unappropriate UID.
 // UID is associated with Pod through ServiceAccount
 func (n uidValidator) Validate(pod *corev1.Pod, a *admissionv1.AdmissionRequest) (validation, error) {
 
+	err := setPodNamespace()
+	if err != nil {
+		v := validation{
+			Valid:  false,
+			Reason: fmt.Sprintf("Failed retrieving some env variables client: %s\n", err),
+		}
+		return v, nil
+	}
+
 	securityContext := pod.Spec.SecurityContext
-	serviceAccount := getServiceAccount(n, a)
+	user := getUser(n, a, pod)
 
 	if securityContext.RunAsUser != nil {
 		found := securityContext.RunAsUser
@@ -57,7 +86,16 @@ func (n uidValidator) Validate(pod *corev1.Pod, a *admissionv1.AdmissionRequest)
 			return v, nil
 		}
 		data := configMap.Data
-		expected, err := strconv.ParseInt(data[serviceAccount], 10, 64)
+		expected, err := strconv.ParseInt(data[user], 10, 64)
+
+		if data[user] == "" {
+			v := validation{
+				Valid:  false,
+				Reason: fmt.Sprintf("User %s has no UID associated with it %s\n", user, err),
+			}
+			return v, nil
+		}
+
 		if err != nil {
 			v := validation{
 				Valid:  false,
@@ -65,6 +103,7 @@ func (n uidValidator) Validate(pod *corev1.Pod, a *admissionv1.AdmissionRequest)
 			}
 			return v, nil
 		}
+
 		if expected != *found {
 			v := validation{
 				Valid:  false,
@@ -106,8 +145,17 @@ func getConfigMap(client *kubernetes.Clientset) (*corev1.ConfigMap, error) {
 	return configMap, nil
 }
 
-// Get ServiceAccount from API request
-func getServiceAccount(mhd uidValidator, request *admissionv1.AdmissionRequest) string {
+// Get ServiceAccount or Username from API request
+func getUser(mhd uidValidator, request *admissionv1.AdmissionRequest, pod *corev1.Pod) string {
+	requestJSON, err := json.MarshalIndent(request, "", "  ")
+	if err != nil {
+		fmt.Printf("Error serializing AdmissionRequest: %v\n", err)
+		return ""
+	}
+
+	// Print the JSON string
+	fmt.Println(string(requestJSON))
+
 	userInfo := request.UserInfo
 	if userInfo.Username != "" && strings.HasPrefix(userInfo.Username, "system:serviceaccount:") {
 		parts := strings.Split(userInfo.Username, ":")
@@ -117,8 +165,11 @@ func getServiceAccount(mhd uidValidator, request *admissionv1.AdmissionRequest) 
 			logMessage := fmt.Sprintf("Request made by ServiceAccount: %s in namespace: %s", serviceAccountName, namespace)
 			mhd.Logger.Info(logMessage)
 
-			return serviceAccountName
+			return pod.Spec.ServiceAccountName
 		}
 	}
-	return ""
+
+	logMessage := fmt.Sprintf("Request made by User: %s in namespace: %s", userInfo.Username, namespace)
+	mhd.Logger.Info(logMessage)
+	return userInfo.Username
 }

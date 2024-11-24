@@ -15,12 +15,13 @@ spec:
       labels:
         app: nfs-pod-access-control
     spec:
+      serviceAccountName: nfs-pod-access-control
       tolerations:
         - key: acme.com/lifespan-remaining
           operator: Exists
           effect: NoSchedule
       containers:
-        - image: cka-control-1:5000/nfs-pod-access-control:latest
+        - image: lucamiano/nfs-pod-access-control
           name: nfs-pod-access-control
           env:
             - name: TLS

@@ -1,11 +1,11 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: "nfs-pod-access-control.k8s.com"
+  name: "{{ .Release.Name }}.{{ .Values.webhook.domain }}"
   annotations:
-    cert-manager.io/inject-ca-from: default/nfs-pod-access-control-certificate
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ .Values.webhook.certificateName }}
 webhooks:
-  - name: "nfs-pod-access-control.k8s.com"
+  - name: "{{ .Release.Name }}.{{ .Values.webhook.domain }}"
     namespaceSelector:
       matchLabels:
         admission-webhook: enabled
@@ -17,10 +17,10 @@ webhooks:
         scope: "*"
     clientConfig:
       service:
-        namespace: default
-        name: nfs-pod-access-control
+        namespace: {{ .Release.Namespace }}
+        name: {{ .Release.Name }}-webhook
         path: /validate-pods
-        port: 443
+        port: {{ .Values.webhook.servicePort }}
     admissionReviewVersions: ["v1"]
     sideEffects: None
-    timeoutSeconds: 2
+    timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}

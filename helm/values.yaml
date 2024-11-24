@@ -1,0 +1,104 @@
+# Global settings for the Helm release
+global:
+  # Namespace for the Helm release, by default it uses the namespace from `helm install` command
+  namespace: default
+
+# Webhook settings
+webhook:
+  domain: "k8s.com"                  # Domain name for the webhook (used in the webhook name)
+  certificateName: "nfs-pod-access-control-certificate"  # Name of the webhook certificate
+  servicePort: 443                          # The port where the webhook service will run
+  timeoutSeconds: 2                        # Timeout for the webhook (in seconds)
+  path: "/validate-pods"                   # Path for the validation webhook
+
+# Deployment settings
+deployment:
+  namespace: "default"
+  replicaCount: 1                          # Number of replicas in the deployment
+  image:
+    repository: "lucamiano/nfs-pod-access-control"  # Docker image repository for the webhook
+    tag: "latest"                          # Image tag
+  env:
+    TLS: "true"                            # TLS setting (whether webhook uses TLS)
+    LOG_LEVEL: "trace"                     # Log level
+    LOG_JSON: "false"                      # Whether logs are in JSON format
+  tolerations:
+    key: "acme.com/lifespan-remaining"     # Toleration key
+    operator: "Exists"                     # Toleration operator
+    effect: "NoSchedule"                   # Toleration effect
+  tlsSecretName: "nfs-pod-access-control-tls"  # Name of the TLS secret
+
+# Service settings
+service:
+  type: "NodePort"                         # Type of the Kubernetes service (e.g., ClusterIP, NodePort)
+  port: 443                                # The service port for the webhook
+  nodePort: 30100                          # NodePort if type is NodePort
+
+# Mutating Webhook Configuration settings
+mutatingWebhook:
+  name: "nfs-pod-access-control.k8s.com"        # The name of the mutating webhook
+  namespaceSelector:
+    matchLabels:
+      admission-webhook: "enabled"          # Selector for the namespaces where the webhook will be enabled
+  rules:
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    operations: ["CREATE"]
+    resources: ["pods"]
+    scope: "*"
+  clientConfig:
+    service:
+      namespace: "{{ .Release.Namespace }}"  # Namespace for the service (configured dynamically)
+      name: "{{ .Release.Name }}-webhook"    # Service name (based on release name)
+      path: "/mutate-pods"                   # Path for the mutating webhook
+      port: 443                              # Port for the webhook service
+  admissionReviewVersions: ["v1"]            # Admission review versions supported
+  sideEffects: "None"                        # Side effects of the webhook (e.g., None)
+  timeoutSeconds: 2                          # Timeout in seconds for the webhook
+
+# Validating Webhook Configuration settings
+validatingWebhook:
+  name: "nfs-pod-access-control.k8s.com"        # The name of the validating webhook
+  namespaceSelector:
+    matchLabels:
+      admission-webhook: "enabled"          # Selector for the namespaces where the webhook will be enabled
+  rules:
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    operations: ["CREATE"]
+    resources: ["pods"]
+    scope: "*"
+  clientConfig:
+    service:
+      namespace: "{{ .Release.Namespace }}"  # Namespace for the service (configured dynamically)
+      name: "{{ .Release.Name }}-webhook"    # Service name (based on release name)
+      path: "/validate-pods"                 # Path for the validating webhook
+      port: 443                              # Port for the webhook service
+  admissionReviewVersions: ["v1"]            # Admission review versions supported
+  sideEffects: "None"                        # Side effects of the webhook (e.g., None)
+  timeoutSeconds: 2                          # Timeout in seconds for the webhook
+
+# Secret settings
+tlsSecret:
+  name: "nfs-pod-access-control-tls"       # Name of the TLS secret used by the webhook
+
+# Service settings
+service:
+  # Type of the service (e.g., ClusterIP, NodePort, LoadBalancer)
+  type: NodePort  # Exposes service on a port on each node
+  # The port exposed by the service to the outside world
+  port: 443  # HTTPS port for the service
+  # The protocol for the service port
+  protocol: TCP  # TCP protocol for the service
+  # The target port that the traffic is directed to inside the container
+  targetPort: 443  # Target port where the application listens
+  # The nodePort is only used if type is NodePort. It exposes the service on a specific port on each node.
+  nodePort: 30100  # Exposed port on the node for external access
+
+rbac:
+  roleName: configmap-reader         # The name of the Role that will be created
+  roleBindingName: configmap-reader-binding  # The name of the RoleBinding
+  serviceAccountName: nfs-pod-access-control  # The ServiceAccount name to bind to the RoleBinding
+
+
+

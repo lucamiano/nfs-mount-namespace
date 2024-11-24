@@ -1,60 +1,68 @@
-# nfs-mount-namespace
+# nfs-pod-access-control
 
-## Installation
-This project is meant to run on a real Kubernetes cluster 
+## Introduction
+The aim of this project is to propose a way to control access to a remote NFS home directory mounted on a pod mapping NFS users with Kubernetes users.
 
 ### Requirements
-* Pre-installed kubernetes cluster
+* Minikube
 * kubectl
 * Go >=1.23 (optional)
-* Helm
 
+#### Deploy cluster
 
-### Deploy Webhook
-First of all to make out webhooks work we need a valid ssl certificate to use.
-In order to do that we are going to use the helm package cert-manager.
+To deploy the cluster run from project root directory:
+```
+./scripts/setup-oidc-cluster oidc-cluster
+```
+This will deploy a minikube cluster using oidc authentication for users using Keycloak.
 
-#### Install Helm
-Install Helm:
-curl -fsSl -o get_helm.sh https://github.com/helm/helm/blob/main/scripts/get-helm-3
-chmod 700 get_helm.sh
-./get_helm.sh
+Wait until the keycloak ingress is reachable and then configure the realm
+```
+./scripts/setup-keycloak
+```
+Once asked provide your keycloak ingress url https://KEYCLOAK_INGRESS.
 
-Add Helm repo:
-helm repo add jetstack https://charts.jetstack.io --force-update
+This will configure a new realm named Kubernetes, a client k8s and three users: user1, user2, user3.
 
-Install cert-manager:
-helm install \
-  cert-manager jetstack/cert-manager \
-  --namespace cert-manager \
-  --create-namespace \
-  --version v1.16.1 \
-  --set crds.enabled=true
+#### Deploy webhook
+To deploy the webhook run from project root directory:
+```
+./scripts/setup-webhook
+```
+This will deploy the webhook in namespace nfs
 
-#### Deploy certificate authority and certificate
+#### Configure users and service account
+In order to test the webhook we are going to create three namespaces for users: user1, user2, user3 and their respective roles and rolebindings for RBAC.
 
-From project root directory run:
-make deploy-ca
-make deploy-certificate
+Also we are going to create a service account for each user in each namespace
+```
+./scripts/setup-account user1 user1
+./scripts/setup-account user1 user2
+./scripts/setup-account user1 user3
 
-To configure the cluster to use the admission and validation webhooks and to deploy said webhooks, simply run:
+./scripts/setup-user user1 user1
+./scripts/setup-user user1 user2
+./scripts/setup-user user1 user3
 ```
 
+#### Configuring access for users
+Now it's time to set credentials for OIDC users in Kubernetes.
+To do so we have to retrieve an access token from the Keycloak server.
+```
+./scripts/init-user-context oidc-cluster user1 123 user1
+./scripts/init-user-context oidc-cluster user2 123 user2
+./scripts/init-user-context oidc-cluster user3 123 user3
 ```
 
-You can stream logs from it:
-```
-❯ make logs
+Every time the token is expired we have to repeat the process.
 
-🔍 Streaming nfs-mount-namespace logs...
-kubectl logs -l app=nfs-mount-namespace -f
-time="2021-09-03T04:59:10Z" level=info msg="Listening on port 443..."
-time="2021-09-03T05:02:21Z" level=debug msg=healthy uri=/health
+To hit it's health endpoint from your minikube machine:
 ```
+## To retrieve webhook svc cluster ip
+kubectl get svc -n nfs
 
-And hit it's health endpoint from your local machine:
-```
-❯ curl -k https://localhost:8443/health
+minikube ssh
+curl -k https://CLUSTER-IP:8443/health
 OK
 ```
 
@@ -63,14 +71,16 @@ A set of validations and mutations are implemented in an extensible framework. T
 
 ### Validating Webhooks
 #### Implemented
-- [uid validation](pkg/validation/uid_validator.go): validates that a pod contains the correct runAsUser option, UID has to map with the correct ServiceAccount that launched the command
+- [uid validation](pkg/validation/uid_validator.go): validates that a pod contains the correct runAsUser option, UID has to map with the correct user/serviceAccount
 
 ### Mutating Webhooks
 #### Implemented
-- [mount home directory](pkg/mutation/mount_home_directory.go): inject runAsUser option inside pod, mapping UID with correct ServiceAccount in NFS home directory
+- [mount home directory](pkg/mutation/mount_home_directory.go): inject runAsUser option inside pod, mapping UID with correct user in NFS home directory
 
-To add a new pod mutation, create a file `pkg/mutation/MUTATION_NAME.go`, then create a new struct implementing the `mutation.podMutator` interface.
+
 
 ## Acknowledgements
 
 - [slackhq/simple-kubernetes-webhook](https://github.com/slackhq/simple-kubernetes-webhook)
+- [use-keycloak-to-authenticate-and-authorize-users-in-kubernetes-with-oidc](https://medium.com/@guillem.riera/use-keycloak-to-authenticate-and-authorize-users-in-kubernetes-with-oidc-cc214a82a49c)
+- [installing-che-on-minikube-keycloak-oidc](https://eclipse.dev/che/docs/stable/administration-guide/installing-che-on-minikube-keycloak-oidc/)
