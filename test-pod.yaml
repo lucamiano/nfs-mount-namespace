@@ -6,7 +6,7 @@ metadata:
   namespace: user2
 spec:
   securityContext:
-    runAsUser: 1002
+    runAsUser: 1001
   containers:
   - name: sec-ctx-demo
     image: busybox:1.28

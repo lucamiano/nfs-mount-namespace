@@ -31,18 +31,28 @@ To deploy the webhook run from project root directory:
 ```
 This will deploy the webhook in namespace nfs
 
+To check everything is working correctly hit it's health endpoint from your minikube machine:
+```
+## To retrieve webhook svc cluster ip
+kubectl get svc -n nfs
+```
+```
+minikube --profile oidc-cluster ssh -- curl -k https://CLUSTER-IP/health
+OK
+```
+
 #### Configure users and service account
 In order to test the webhook we are going to create three namespaces for users: user1, user2, user3 and their respective roles and rolebindings for RBAC.
 
 Also we are going to create a service account for each user in each namespace
 ```
 ./scripts/setup-account user1 user1
-./scripts/setup-account user1 user2
-./scripts/setup-account user1 user3
+./scripts/setup-account user2 user2
+./scripts/setup-account user3 user3
 
 ./scripts/setup-user user1 user1
-./scripts/setup-user user1 user2
-./scripts/setup-user user1 user3
+./scripts/setup-user user2 user2
+./scripts/setup-user user3 user3
 ```
 
 #### Configuring access for users
@@ -55,16 +65,6 @@ To do so we have to retrieve an access token from the Keycloak server.
 ```
 
 Every time the token is expired we have to repeat the process.
-
-To hit it's health endpoint from your minikube machine:
-```
-## To retrieve webhook svc cluster ip
-kubectl get svc -n nfs
-
-minikube ssh
-curl -k https://CLUSTER-IP:8443/health
-OK
-```
 
 ## Admission Logic
 A set of validations and mutations are implemented in an extensible framework. Those happen on the fly when a pod is deployed and no further resources are tracked and updated (ie. no controller logic).

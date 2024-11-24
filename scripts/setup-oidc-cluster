@@ -1,3 +1,5 @@
+#!/bin/bash
+
 PROFILE=$1
 minikube delete --profile=${PROFILE}
 minikube start --driver=docker --addons=ingress --vm=true --memory=4096 --cpus=4 --profile=${PROFILE}
