@@ -42,12 +42,6 @@ resource "keycloak_openid_client" "k8s" {
   ]
 }
 
-# Create a group named "nfs"
-resource "keycloak_group" "nfs" {
-  realm_id = keycloak_realm.kubernetes.id
-  name     = "nfs"
-}
-
 # Create user "user1"
 resource "keycloak_user" "user1" {
   realm_id = keycloak_realm.kubernetes.id
@@ -99,31 +93,6 @@ resource "keycloak_user" "user3" {
   }
 }
 
-resource "keycloak_group_memberships" "group_members" {
-  realm_id  = keycloak_realm.kubernetes.id
-  group_id  = keycloak_group.nfs.id
-  members = [
-    keycloak_user.user1.username,
-    keycloak_user.user2.username,
-    keycloak_user.user3.username
-  ]
-}
-
-resource "keycloak_openid_client_scope" "groups_client_scope" {
-  realm_id               = keycloak_realm.kubernetes.id
-  name                   = "groups"
-  include_in_token_scope = false
-  description            = "When requested, this scope will map a user's group memberships to a claim"
-}
-
-resource "keycloak_openid_group_membership_protocol_mapper" "group_membership_mapper" {
-  realm_id       = keycloak_realm.kubernetes.id
-  client_scope_id = keycloak_openid_client_scope.groups_client_scope.id
-  name           = "groups"
-  claim_name     = "groups"
-  full_path      = false
-}
-
 resource "keycloak_openid_client_default_scopes" "client_default_scopes" {
   realm_id  = keycloak_realm.kubernetes.id
   client_id = keycloak_openid_client.k8s.id
@@ -134,6 +103,5 @@ resource "keycloak_openid_client_default_scopes" "client_default_scopes" {
     "web-origins",
     "acr",
     "roles",
-    keycloak_openid_client_scope.groups_client_scope.name,
   ]
 }

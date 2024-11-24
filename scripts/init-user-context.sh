@@ -1,4 +1,5 @@
 PROFILE=$1
+NAMESPACE=$4
 MINIKUBE_IP=$(minikube ip --profile=${PROFILE})
 
 REALM="kubernetes"
@@ -19,7 +20,7 @@ export RESPONSE=$(curl -v -k -X POST \
 -d client_id=${OIDC_CLIENT_ID} \
 -d username=${K8S_USER} \
 -d password=${K8S_USER_PASS} \
--d scope="openid profile email groups" | jq '.')
+-d scope="openid profile email" | jq '.')
 
 export ID_TOKEN=$(echo $RESPONSE| jq -r '.id_token')
 export REFRESH_TOKEN=$(echo $RESPONSE| jq -r '.refresh_token')
@@ -36,4 +37,4 @@ kubectl config set-credentials ${K8S_USER} \
 kubectl config set-context ${K8S_USER} \
 --cluster=oidc-cluster \
 --user=${K8S_USER} \
---namespace=nfs
+--namespace=${NAMESPACE}

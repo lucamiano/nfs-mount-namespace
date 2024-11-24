@@ -1,5 +1,4 @@
 PROFILE=$1
-
 minikube delete --profile=${PROFILE}
 minikube start --driver=docker --addons=ingress --vm=true --memory=4096 --cpus=4 --profile=${PROFILE}
 
@@ -35,6 +34,3 @@ minikube start --profile=${PROFILE}\
     --extra-config=apiserver.oidc-groups-claim=groups \
     --extra-config=apiserver.oidc-groups-prefix= \
     --extra-config=apiserver.oidc-ca-file=/etc/ca-certificates/keycloak-ca.crt
-
-kubectl apply -f dev/manifests/nfs-ns.yaml
-kubectl apply -f dev/manifests/rbac/nfs-rbac.yaml

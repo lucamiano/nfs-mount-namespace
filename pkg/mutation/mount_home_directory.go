@@ -59,7 +59,7 @@ func (mhd mountHomeDirectory) Mutate(pod *corev1.Pod, a *admissionv1.AdmissionRe
 	mhd.Logger = mhd.Logger.WithField("mutation", mhd.Name())
 	mpod := pod.DeepCopy()
 	securityContext := pod.Spec.SecurityContext
-	user := getUser(mhd, a)
+	user := getUser(mhd, a, pod)
 
 	if securityContext == nil || securityContext.RunAsUser == nil {
 		logMessage := fmt.Sprintf("No runAsUser rule found, applying default for current User %s", user)
@@ -135,7 +135,7 @@ func getConfigMap(client *kubernetes.Clientset) (*corev1.ConfigMap, error) {
 }
 
 // Get ServiceAccount or Username from API request
-func getUser(mhd mountHomeDirectory, request *admissionv1.AdmissionRequest) string {
+func getUser(mhd mountHomeDirectory, request *admissionv1.AdmissionRequest, pod *corev1.Pod) string {
 	userInfo := request.UserInfo
 	if userInfo.Username != "" && strings.HasPrefix(userInfo.Username, "system:serviceaccount:") {
 		parts := strings.Split(userInfo.Username, ":")
@@ -145,7 +145,7 @@ func getUser(mhd mountHomeDirectory, request *admissionv1.AdmissionRequest) stri
 			logMessage := fmt.Sprintf("Request made by ServiceAccount: %s in namespace: %s", serviceAccountName, namespace)
 			mhd.Logger.Info(logMessage)
 
-			return serviceAccountName
+			return pod.Spec.ServiceAccountName
 		}
 	}
 

@@ -2,11 +2,11 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: nfs-pod-access-control-certificate
-  namespace: nfs-pod-ac
+  namespace: nfs
 spec:
   secretName: nfs-pod-access-control-tls
   dnsNames:
-    - nfs-pod-access-control-webhook.nfs-pod-ac.svc
+    - nfs-pod-access-control-webhook.nfs.svc
   issuerRef:
     name: self-signer
     kind: ClusterIssuer

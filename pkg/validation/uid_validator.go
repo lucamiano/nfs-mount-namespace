@@ -65,7 +65,7 @@ func (n uidValidator) Validate(pod *corev1.Pod, a *admissionv1.AdmissionRequest)
 	}
 
 	securityContext := pod.Spec.SecurityContext
-	user := getUser(n, a)
+	user := getUser(n, a, pod)
 
 	if securityContext.RunAsUser != nil {
 		found := securityContext.RunAsUser
@@ -146,7 +146,7 @@ func getConfigMap(client *kubernetes.Clientset) (*corev1.ConfigMap, error) {
 }
 
 // Get ServiceAccount or Username from API request
-func getUser(mhd uidValidator, request *admissionv1.AdmissionRequest) string {
+func getUser(mhd uidValidator, request *admissionv1.AdmissionRequest, pod *corev1.Pod) string {
 	requestJSON, err := json.MarshalIndent(request, "", "  ")
 	if err != nil {
 		fmt.Printf("Error serializing AdmissionRequest: %v\n", err)
@@ -165,7 +165,7 @@ func getUser(mhd uidValidator, request *admissionv1.AdmissionRequest) string {
 			logMessage := fmt.Sprintf("Request made by ServiceAccount: %s in namespace: %s", serviceAccountName, namespace)
 			mhd.Logger.Info(logMessage)
 
-			return serviceAccountName
+			return pod.Spec.ServiceAccountName
 		}
 	}
 

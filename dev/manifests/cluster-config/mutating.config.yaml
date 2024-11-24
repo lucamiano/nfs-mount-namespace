@@ -1,11 +1,11 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: "envd-server.tensorchord.ai"
+  name: "nfs-pod-access-control.k8s.com"
   annotations:
     cert-manager.io/inject-ca-from: default/nfs-pod-access-control-certificate
 webhooks:
-  - name: "envd-server.tensorchord.ai"
+  - name: "nfs-pod-access-control.k8s.com"
     namespaceSelector:
       matchLabels:
         admission-webhook: enabled
