@@ -1,0 +1,49 @@
+#!/bin/bash
+
+export USERNAME=$1
+export NAMESPACE=$2
+
+## Deploy a PV pointing to NFS home directory
+envsubst < dev/manifests/static-storage/nfs-pv.yaml | kubectl apply -f -
+
+## Set variables for user1
+export USERNAME=user1
+export NAMESPACE=user1
+## Deploy user1 namespace
+envsubst < dev/manifests/accounts/namespace.yaml | kubectl apply -f -
+## Deploy user1 service account
+envsubst < dev/manifests/accounts/serviceaccount.yaml | kubectl apply -f -
+## Deploy user1 service account RBAC
+envsubst < dev/manifests/accounts/sa-rbac.yaml | kubectl apply -f -
+## Deploy user1 user RBAC
+envsubst < dev/manifests/accounts/user-rbac.yaml | kubectl apply -f -
+## Deploy a PVC linked with the PV
+envsubst < dev/manifests/static-storage/nfs-pvc.yaml | kubectl apply -f -
+
+## Set variables for user2
+export USERNAME=user2
+export NAMESPACE=user2
+## Deploy user2 namespace
+envsubst < dev/manifests/accounts/namespace.yaml | kubectl apply -f -
+## Deploy user2 service account
+envsubst < dev/manifests/accounts/serviceaccount.yaml | kubectl apply -f -
+## Deploy user2 service account RBAC
+envsubst < dev/manifests/accounts/sa-rbac.yaml | kubectl apply -f -
+## Deploy user2 user RBAC
+envsubst < dev/manifests/accounts/user-rbac.yaml | kubectl apply -f -
+## Deploy a PVC linked with the PV
+envsubst < dev/manifests/static-storage/nfs-pvc.yaml | kubectl apply -f -
+
+## Set variables for user3
+export USERNAME=user3
+export NAMESPACE=user3
+## Deploy user3 namespace
+envsubst < dev/manifests/accounts/namespace.yaml | kubectl apply -f -
+## Deploy user3 service account
+envsubst < dev/manifests/accounts/serviceaccount.yaml | kubectl apply -f -
+## Deploy user3 service account RBAC
+envsubst < dev/manifests/accounts/sa-rbac.yaml | kubectl apply -f -
+## Deploy user3 user RBAC
+envsubst < dev/manifests/accounts/user-rbac.yaml | kubectl apply -f -
+## Deploy a PVC linked with the PV
+envsubst < dev/manifests/static-storage/nfs-pvc.yaml | kubectl apply -f -

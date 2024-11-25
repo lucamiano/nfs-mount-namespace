@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: security-context-deployment
-  namespace: user1
+  name: ${USER}-test-validation-deployment
+  namespace: ${NAMESPACE}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: security-context-check
+      app: ${USER}-test-validation-deployment
   template:
     metadata:
       labels:
-        app: security-context-check
+        app: ${USER}-test-validation-deployment
     spec:
-      serviceAccountName: user1
+      serviceAccountName: ${SVC_ACC}
       containers:
-      - name: sec-ctx-check
+      - name: ${USER}-test-validation-deployment-container
         image: busybox:1.28
         command: [ "sh", "-c", "sleep 1h" ]
         volumeMounts:
@@ -23,7 +23,6 @@ spec:
           mountPath: /var/home
       volumes:
       - name: nfs-vol
-        nfs:
-          server: 192.168.1.141
-          path: /home
+        persistentVolumeClaim:
+          claimName: nfs-pvc # PVC reference
       restartPolicy: Always

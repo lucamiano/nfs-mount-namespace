@@ -7,7 +7,7 @@ kubectl create namespace nfs
 kubectl apply -f dev/manifests/cert-manager/nfs-pod-access-control-certificate.yaml
 
 ## Install helm package
-helm install nfs-pod-access-control helm -n nfs --create-namespace
+helm install nfs-pod-access-control helm -n nfs
 
 ## Map NFS users in configmap
 scripts/add-user user1 1001
