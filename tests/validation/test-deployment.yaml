@@ -23,6 +23,7 @@ spec:
           mountPath: /var/home
       volumes:
       - name: nfs-vol
-        persistentVolumeClaim:
-          claimName: nfs-pvc # PVC reference
+        nfs:
+          server: 192.168.1.141
+          path: /home
       restartPolicy: Always

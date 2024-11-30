@@ -73,21 +73,25 @@ A set of validations and mutations are implemented in an extensible framework. T
 - [mount home directory](pkg/mutation/mount_home_directory.go): inject runAsUser option inside pod, mapping UID with correct user in NFS home directory
 
 ## Test
-In order to test the system some yaml files has been provided inside the folder tests
-This yaml take as input some variable in order to deploy the resources using different use cases.
-```text
-USER = The name of the user that executes the kubectl apply.
-NAMESPACE = The namespace in which to deploy the resource.
-USER_ID = UID of the corresponding user in NFS.
-SVC_ACC = The service account corresponding to the user.
+In order to test the system a few manifests have been provided inside the folder tests.
+This files take as input some variable in order to deploy the resources for different use cases.
+```sh
+export USER=
+export NAMESPACE=
+export USER_ID=
+export SVC_ACC=
 ```
-To test validation webhook a *test-pod.yaml* has been provided in order to test the deployment of a pod.
+Where
+USER is the name of the user that executes the kubectl apply.
+NAMESPACE is the namespace in which to deploy the resource.
+USER_ID is th UID of the corresponding user in NFS.
+SVC_ACC is the service account corresponding to the user.
 
-- *test-deployment* to test the deployment of a pod using a deployment object.
+To test validation webhook a 
+- [test-pod](tests/validation/test-pod.yaml) in order to test the deployment of a pod.
+- [test-deployment](tests/validation/test-deployment.yaml) to test the deployment of a pod using a deployment object, letting the webhook retrieve the runAsUser value from the ServiceAccount used by the pod, mapped to the user that made the request
 
-To test mutating webhook two manifests have been provided:
-- *test-pod.yaml* that doesn't use the runAsUser field, letting the webhook retrieving it from the user that made the request
-- *test-deployment* to test the deployment of a pod using a deployment object, letting the webhook retrieve the runAsUser value from the ServiceAccount used by the pod, mapped to the user that made the request
+To test mutating webhook a [test-pod.yaml](tests/mutation/test-pod.yaml) manifest has been provided, that doesn't use the runAsUser field, letting the webhook retrieving it from the user that made the request.
 
 In order to run the test export the previously defined variables and execute:
 ```
